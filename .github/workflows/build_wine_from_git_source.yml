@@ -1,0 +1,81 @@
+name: build_wine_from_git_source
+
+#on: [push]
+on:
+  schedule:
+    # https://pubs.opengroup.org/onlinepubs/9699919799/utilities/crontab.html#tag_20_25_07
+    # * is a special character in YAML so you have to quote this string
+    - cron:  '0 2 * * *'
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v1
+    - name: check `git status`
+      run: |
+        git status
+        git branch
+    - name: enable i386
+      run: |
+        sudo lsb_release -a
+        gcc --version
+        getconf _NPROCESSORS_ONLN
+        sudo dpkg --add-architecture i386
+        sudo dpkg --print-architecture
+        wget -nc https://dl.winehq.org/wine-builds/winehq.key
+        sudo apt-key add winehq.key
+        sudo apt-add-repository 'deb https://dl.winehq.org/wine-builds/ubuntu/ bionic main'
+        sudo apt update
+        sudo apt autoremove
+
+    #- name: sudo apt -y dist-upgrade
+    #  run: |
+    #    sudo apt -y dist-upgrade
+    #    sudo apt autoremove
+
+    - name: install dependencies
+      run: |
+        sudo apt install build-essential module-assistant
+        sudo apt install gcc-multilib g++-multilib
+        sudo apt install flex
+        sudo apt install bison
+        sudo apt install ccache
+        sudo apt install libx11-dev:i386 libfreetype6-dev:i386
+        sudo apt install tree
+        sudo apt autoremove
+
+    - name: build `wine64` from source code
+      run: |
+        pwd
+        # /home/runner/work/wine/wine
+        echo $HOME
+        # /home/runner
+
+        mkdir -p /home/runner/work/wine/wine64-build
+        cd /home/runner/work/wine/wine64-build
+        ../wine/configure --enable-win64 CC="ccache gcc"
+        make -j3
+
+    - name: build `wine32` from source code
+      run: |
+        mkdir -p /home/runner/work/wine/wine32-build/
+        cd /home/runner/work/wine/wine32-build/
+        PKG_CONFIG_PATH=/usr/lib32/pkgconfig ../wine/configure --with-wine64=../wine64-build CC="ccache gcc"
+        make  -j3
+
+    - name: check version
+      run: |
+        cd /home/runner/work/wine/wine64-build
+        pwd
+        tree -L 2
+        ./wine --version
+        ./wine64 --version
+
+        cd /home/runner/work/wine/wine32-build/
+        pwd
+        tree -L 2
+        ./wine --version
+        ./wine64 --version
