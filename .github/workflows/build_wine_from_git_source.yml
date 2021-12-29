@@ -27,7 +27,7 @@ jobs:
         sudo dpkg --print-architecture
         wget -nc https://dl.winehq.org/wine-builds/winehq.key
         sudo apt-key add winehq.key
-        sudo apt-add-repository 'deb https://dl.winehq.org/wine-builds/ubuntu/ bionic main'
+        sudo add-apt-repository 'deb https://dl.winehq.org/wine-builds/ubuntu/ focal main'
         sudo apt update
         sudo apt autoremove
 
